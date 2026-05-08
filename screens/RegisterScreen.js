@@ -3,28 +3,46 @@ import { useState, useEffect } from 'react';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import Toast from 'react-native-toast-message';
+import { obtenerErrores } from '../utils/validaciones';
 
 export default function RegisterScreen({ navigation }) {
   const [fontsLoaded] = useFonts({ DancingScript_700Bold });
-
   const [cargando, setCargando] = useState(false);
 
-  // Bloquea el botón físico de atrás mientras carga
+  // Estados de los campos
+  const [correo, setCorreo] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [confirmarContrasena, setConfirmarContrasena] = useState('');
+
   useEffect(() => {
-    const backAction = () => {
-      if (cargando) return true; // bloquea el botón
-      return false;
-    };
+    const backAction = () => { if (cargando) return true; return false; };
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
   }, [cargando]);
 
   const handleCrearCuenta = () => {
-    setCargando(true);
+    // Validaciones
+    const errores = obtenerErrores(correo, contrasena);
 
+    if (confirmarContrasena !== contrasena) {
+      errores.push('Las contraseñas no coinciden.');
+    }
+
+    if (errores.length > 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error de validación',
+        text2: errores[0],
+        position: 'top',
+        visibilityTime: 3000,
+      });
+      return;
+    }
+
+    // Si pasa todas las validaciones, procede
+    setCargando(true);
     setTimeout(() => {
       setCargando(false);
-
       Toast.show({
         type: 'success',
         text1: '¡Cuenta creada! 🎉',
@@ -32,8 +50,7 @@ export default function RegisterScreen({ navigation }) {
         position: 'top',
         visibilityTime: 3000,
       });
-
-      navigation.navigate('Login'); // navega inmediatamente
+      navigation.navigate('Login');
     }, 2000);
   };
 
@@ -42,10 +59,7 @@ export default function RegisterScreen({ navigation }) {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView showsVerticalScrollIndicator={false}>
 
             <View style={styles.headerSection}>
@@ -58,34 +72,16 @@ export default function RegisterScreen({ navigation }) {
               <Text style={styles.subText}>Llena los datos para continuar</Text>
 
               <Text style={styles.label}>Nombres</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Tus nombres"
-                placeholderTextColor="#aaa"
-              />
+              <TextInput style={styles.input} placeholder="Tus nombres" placeholderTextColor="#aaa" />
 
               <Text style={styles.label}>Apellidos</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Tus apellidos"
-                placeholderTextColor="#aaa"
-              />
+              <TextInput style={styles.input} placeholder="Tus apellidos" placeholderTextColor="#aaa" />
 
               <Text style={styles.label}>Fecha de nacimiento</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor="#aaa"
-                keyboardType="numeric"
-              />
+              <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#aaa" keyboardType="numeric" />
 
               <Text style={styles.label}>Teléfono</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Tu número de teléfono"
-                placeholderTextColor="#aaa"
-                keyboardType="phone-pad"
-              />
+              <TextInput style={styles.input} placeholder="Tu número de teléfono" placeholderTextColor="#aaa" keyboardType="phone-pad" />
 
               <Text style={styles.label}>Correo electrónico</Text>
               <TextInput
@@ -94,6 +90,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholderTextColor="#aaa"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                value={correo}
+                onChangeText={setCorreo}
               />
 
               <Text style={styles.label}>Contraseña</Text>
@@ -102,6 +100,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="Crea una contraseña"
                 placeholderTextColor="#aaa"
                 secureTextEntry
+                value={contrasena}
+                onChangeText={setContrasena}
               />
 
               <Text style={styles.label}>Confirmar contraseña</Text>
@@ -110,6 +110,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="Repite tu contraseña"
                 placeholderTextColor="#aaa"
                 secureTextEntry
+                value={confirmarContrasena}
+                onChangeText={setConfirmarContrasena}
               />
 
               <TouchableOpacity
@@ -117,18 +119,12 @@ export default function RegisterScreen({ navigation }) {
                 onPress={handleCrearCuenta}
                 disabled={cargando}
               >
-                {cargando ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.registerButtonText}>CREAR CUENTA</Text>
-                )}
+                {cargando ? <ActivityIndicator color="white" /> : <Text style={styles.registerButtonText}>CREAR CUENTA</Text>}
               </TouchableOpacity>
 
               <View style={styles.loginRow}>
                 <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate('Login')}
-                  disabled={cargando}>
+                <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={cargando}>
                   <Text style={[styles.loginLink, cargando && { color: '#aaa' }]}>Inicia sesión</Text>
                 </TouchableOpacity>
               </View>
@@ -227,3 +223,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
