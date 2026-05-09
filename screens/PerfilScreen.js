@@ -92,19 +92,19 @@ export default function PerfilScreen({ navigation }) {
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>Información personal</Text>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>📛 Nombre</Text>
+            <Text style={styles.filaLabel}>Nombre</Text>
             <Text style={styles.filaValor}>{perfil.nombre}</Text>
           </View>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>📧 Correo</Text>
+            <Text style={styles.filaLabel}>Correo</Text>
             <Text style={styles.filaValor}>{perfil.correo}</Text>
           </View>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>📱 Teléfono</Text>
+            <Text style={styles.filaLabel}>Teléfono</Text>
             <Text style={styles.filaValor}>{perfil.telefono}</Text>
           </View>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>🎂 Nacimiento</Text>
+            <Text style={styles.filaLabel}>Nacimiento</Text>
             <Text style={styles.filaValor}>{perfil.fechaNacimiento}</Text>
           </View>
         </View>
