@@ -1,3 +1,4 @@
+
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, BackHandler } from 'react-native';
 import { useState, useEffect } from 'react';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -5,11 +6,91 @@ import { useFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-scri
 import Toast from 'react-native-toast-message';
 import { obtenerErrores } from '../utils/validaciones';
 
+const soloLetras = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'-]+$/;
+const soloTelefono = /^[0-9]{7,15}$/;
+
+function validarFechaNacimiento(valor) {
+  if (!valor.trim()) return 'La fecha de nacimiento es obligatoria.';
+
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = valor.match(regex);
+  if (!match) return 'La fecha debe tener el formato DD/MM/AAAA.';
+
+  const dia = parseInt(match[1], 10);
+  const mes = parseInt(match[2], 10);
+  const anio = parseInt(match[3], 10);
+
+  const anioActual = new Date().getFullYear();
+
+  if (anio < 1900 || anio > anioActual)
+    return `El año debe estar entre 1900 y ${anioActual}.`;
+  if (mes < 1 || mes > 12)
+    return 'El mes debe estar entre 01 y 12.';
+
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+  if (dia < 1 || dia > diasEnMes)
+    return `El día debe estar entre 01 y ${diasEnMes} para ese mes.`;
+
+  const fechaIngresada = new Date(anio, mes - 1, dia);
+  if (fechaIngresada > new Date())
+    return 'La fecha de nacimiento no puede ser futura.';
+
+  return null;
+}
+
+function validarCamposLocales({ nombres, apellidos, fechaNacimiento, telefono }) {
+  const errores = [];
+
+  if (!nombres.trim())
+    errores.push('El nombre es obligatorio.');
+  else if (!soloLetras.test(nombres))
+    errores.push('El nombre solo puede contener letras.');
+  else if (nombres.trim().length < 2)
+    errores.push('El nombre debe tener al menos 2 caracteres.');
+
+  if (!apellidos.trim())
+    errores.push('El apellido es obligatorio.');
+  else if (!soloLetras.test(apellidos))
+    errores.push('El apellido solo puede contener letras.');
+  else if (apellidos.trim().length < 2)
+    errores.push('El apellido debe tener al menos 2 caracteres.');
+
+  const errorFecha = validarFechaNacimiento(fechaNacimiento);
+  if (errorFecha) errores.push(errorFecha);
+
+  const telefonoLimpio = telefono.replace(/\s/g, '');
+  if (!telefonoLimpio)
+    errores.push('El teléfono es obligatorio.');
+  else if (!soloTelefono.test(telefonoLimpio))
+    errores.push('El teléfono debe tener entre 7 y 15 dígitos numéricos.');
+
+  return errores;
+}
+
+function formatearFecha(texto, valorAnterior) {
+  let soloDigitos = texto.replace(/\D/g, '');
+
+  if (soloDigitos.length > 8) soloDigitos = soloDigitos.slice(0, 8);
+
+  let resultado = soloDigitos;
+  if (soloDigitos.length >= 3) {
+    resultado = soloDigitos.slice(0, 2) + '/' + soloDigitos.slice(2);
+  }
+  if (soloDigitos.length >= 5) {
+    resultado = soloDigitos.slice(0, 2) + '/' + soloDigitos.slice(2, 4) + '/' + soloDigitos.slice(4);
+  }
+
+  return resultado;
+}
+
 export default function RegisterScreen({ navigation }) {
   const [fontsLoaded] = useFonts({ DancingScript_700Bold });
   const [cargando, setCargando] = useState(false);
 
-  // Estados de los campos
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
@@ -20,32 +101,45 @@ export default function RegisterScreen({ navigation }) {
     return () => backHandler.remove();
   }, [cargando]);
 
+  const handleFechaNacimientoChange = (texto) => {
+    const formateado = formatearFecha(texto, fechaNacimiento);
+    setFechaNacimiento(formateado);
+  };
+
+  const mostrarError = (mensaje) => {
+    Toast.show({
+      type: 'error',
+      text1: 'Error de validación',
+      text2: mensaje,
+      position: 'top',
+      visibilityTime: 3000,
+    });
+  };
+
   const handleCrearCuenta = () => {
-    // Validaciones
-    const errores = obtenerErrores(correo, contrasena);
-
-    if (confirmarContrasena !== contrasena) {
-      errores.push('Las contraseñas no coinciden.');
-    }
-
-    if (errores.length > 0) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error de validación',
-        text2: errores[0],
-        position: 'top',
-        visibilityTime: 3000,
-      });
+    const erroresLocales = validarCamposLocales({ nombres, apellidos, fechaNacimiento, telefono });
+    if (erroresLocales.length > 0) {
+      mostrarError(erroresLocales[0]);
       return;
     }
 
-    // Si pasa todas las validaciones, procede
+    const erroresUtils = obtenerErrores(correo, contrasena);
+    if (erroresUtils.length > 0) {
+      mostrarError(erroresUtils[0]);
+      return;
+    }
+
+    if (confirmarContrasena !== contrasena) {
+      mostrarError('Las contraseñas no coinciden.');
+      return;
+    }
+
     setCargando(true);
     setTimeout(() => {
       setCargando(false);
       Toast.show({
         type: 'success',
-        text1: '¡Cuenta creada! 🎉',
+        text1: 'Cuenta creada',
         text2: 'Tu cuenta ha sido creada exitosamente.',
         position: 'top',
         visibilityTime: 3000,
@@ -72,16 +166,45 @@ export default function RegisterScreen({ navigation }) {
               <Text style={styles.subText}>Llena los datos para continuar</Text>
 
               <Text style={styles.label}>Nombres</Text>
-              <TextInput style={styles.input} placeholder="Tus nombres" placeholderTextColor="#aaa" />
+              <TextInput
+                style={styles.input}
+                placeholder="Tus nombres"
+                placeholderTextColor="#aaa"
+                value={nombres}
+                onChangeText={setNombres}
+                autoCapitalize="words"
+              />
 
               <Text style={styles.label}>Apellidos</Text>
-              <TextInput style={styles.input} placeholder="Tus apellidos" placeholderTextColor="#aaa" />
+              <TextInput
+                style={styles.input}
+                placeholder="Tus apellidos"
+                placeholderTextColor="#aaa"
+                value={apellidos}
+                onChangeText={setApellidos}
+                autoCapitalize="words"
+              />
 
               <Text style={styles.label}>Fecha de nacimiento</Text>
-              <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#aaa" keyboardType="numeric" />
+              <TextInput
+                style={styles.input}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor="#aaa"
+                keyboardType="numeric"
+                value={fechaNacimiento}
+                onChangeText={handleFechaNacimientoChange}
+                maxLength={10}
+              />
 
               <Text style={styles.label}>Teléfono</Text>
-              <TextInput style={styles.input} placeholder="Tu número de teléfono" placeholderTextColor="#aaa" keyboardType="phone-pad" />
+              <TextInput
+                style={styles.input}
+                placeholder="Tu número de teléfono"
+                placeholderTextColor="#aaa"
+                keyboardType="phone-pad"
+                value={telefono}
+                onChangeText={setTelefono}
+              />
 
               <Text style={styles.label}>Correo electrónico</Text>
               <TextInput
@@ -223,4 +346,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
 

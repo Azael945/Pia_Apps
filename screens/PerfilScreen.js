@@ -1,26 +1,92 @@
+
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+
+
+const soloLetras = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'-]+$/;
+const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const soloTelefono = /^[0-9]{7,15}$/;
+
+function validarNombre(valor) {
+  if (!valor.trim()) return 'El nombre es requerido.';
+  if (valor.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
+  if (valor.trim().length > 80) return 'El nombre no puede superar los 80 caracteres.';
+  if (!soloLetras.test(valor)) return 'El nombre solo puede contener letras.';
+  return null;
+}
+
+function validarCorreo(valor) {
+  if (!valor.trim()) return 'El correo es requerido.';
+  if (!regexCorreo.test(valor.trim())) return 'Ingresa un correo válido.';
+  return null;
+}
+
+function validarTelefono(valor) {
+  const limpio = valor.replace(/\s/g, '');
+  if (!limpio) return 'El teléfono es requerido.';
+  if (!soloTelefono.test(limpio)) return 'El teléfono debe tener entre 7 y 15 dígitos numéricos.';
+  return null;
+}
+
+function validarFechaNacimiento(valor) {
+  if (!valor.trim()) return 'La fecha de nacimiento es requerida.';
+
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = valor.match(regex);
+  if (!match) return 'Formato inválido. Usa DD/MM/AAAA.';
+
+  const dia  = parseInt(match[1], 10);
+  const mes  = parseInt(match[2], 10);
+  const anio = parseInt(match[3], 10);
+
+  const anioActual = new Date().getFullYear();
+
+  if (anio < 1900 || anio > anioActual)
+    return `El año debe estar entre 1900 y ${anioActual}.`;
+  if (mes < 1 || mes > 12)
+    return 'El mes debe estar entre 01 y 12.';
+
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+  if (dia < 1 || dia > diasEnMes)
+    return `El día debe estar entre 01 y ${diasEnMes} para ese mes.`;
+
+  const fechaIngresada = new Date(anio, mes - 1, dia);
+  if (fechaIngresada > new Date())
+    return 'La fecha de nacimiento no puede ser futura.';
+
+  return null;
+}
+
+function formatearFecha(texto) {
+  const soloDigitos = texto.replace(/\D/g, '').slice(0, 8);
+  if (soloDigitos.length >= 5)
+    return soloDigitos.slice(0, 2) + '/' + soloDigitos.slice(2, 4) + '/' + soloDigitos.slice(4);
+  if (soloDigitos.length >= 3)
+    return soloDigitos.slice(0, 2) + '/' + soloDigitos.slice(2);
+  return soloDigitos;
+}
 
 export default function PerfilScreen({ navigation }) {
   const [perfil, setPerfil] = useState({
     nombre: 'Juan Pérez',
     correo: 'juan.perez@gmail.com',
-    telefono: '81 1234 5678',
+    telefono: '8112345678',
     fechaNacimiento: '15/03/1958',
   });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [errores, setErrores] = useState({});
 
-  // Campos temporales mientras edita
   const [nombreTemp, setNombreTemp] = useState('');
   const [correoTemp, setCorreoTemp] = useState('');
   const [telefonoTemp, setTelefonoTemp] = useState('');
   const [fechaTemp, setFechaTemp] = useState('');
 
+  const limpiarError = (campo) =>
+    setErrores((e) => ({ ...e, [campo]: null }));
+
   const abrirModal = () => {
-    // Carga los datos actuales en los campos del modal
     setNombreTemp(perfil.nombre);
     setCorreoTemp(perfil.correo);
     setTelefonoTemp(perfil.telefono);
@@ -29,39 +95,32 @@ export default function PerfilScreen({ navigation }) {
     setModalVisible(true);
   };
 
-  const handleFecha = (text) => {
-    const soloNumeros = text.replace(/\D/g, '');
-    let formateado = soloNumeros;
-    if (soloNumeros.length >= 3 && soloNumeros.length <= 4) {
-      formateado = soloNumeros.slice(0, 2) + '/' + soloNumeros.slice(2);
-    } else if (soloNumeros.length >= 5) {
-      formateado = soloNumeros.slice(0, 2) + '/' + soloNumeros.slice(2, 4) + '/' + soloNumeros.slice(4, 8);
-    }
-    setFechaTemp(formateado);
-    setErrores(e => ({ ...e, fecha: null }));
+  const handleFecha = (texto) => {
+    setFechaTemp(formatearFecha(texto));
+    limpiarError('fecha');
   };
 
   const handleGuardar = () => {
-    const nuevosErrores = {};
+    const nuevosErrores = {
+      nombre:   validarNombre(nombreTemp),
+      correo:   validarCorreo(correoTemp),
+      telefono: validarTelefono(telefonoTemp),
+      fecha:    validarFechaNacimiento(fechaTemp),
+    };
 
-    if (!nombreTemp.trim()) nuevosErrores.nombre = 'El nombre es requerido.';
+    const conError = Object.fromEntries(
+      Object.entries(nuevosErrores).filter(([, v]) => v !== null)
+    );
 
-    const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!regexCorreo.test(correoTemp)) nuevosErrores.correo = 'Ingresa un correo válido.';
-
-    if (!telefonoTemp.trim()) nuevosErrores.telefono = 'El teléfono es requerido.';
-
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fechaTemp)) nuevosErrores.fecha = 'Formato inválido. Usa DD/MM/AAAA.';
-
-    if (Object.keys(nuevosErrores).length > 0) {
-      setErrores(nuevosErrores);
+    if (Object.keys(conError).length > 0) {
+      setErrores(conError);
       return;
     }
 
     setPerfil({
-      nombre: nombreTemp.trim(),
-      correo: correoTemp.trim(),
-      telefono: telefonoTemp.trim(),
+      nombre:          nombreTemp.trim(),
+      correo:          correoTemp.trim(),
+      telefono:        telefonoTemp.trim(),
       fechaNacimiento: fechaTemp.trim(),
     });
 
@@ -92,19 +151,19 @@ export default function PerfilScreen({ navigation }) {
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>Información personal</Text>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>📛 Nombre</Text>
+            <Text style={styles.filaLabel}>Nombre</Text>
             <Text style={styles.filaValor}>{perfil.nombre}</Text>
           </View>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>📧 Correo</Text>
+            <Text style={styles.filaLabel}>Correo</Text>
             <Text style={styles.filaValor}>{perfil.correo}</Text>
           </View>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>📱 Teléfono</Text>
+            <Text style={styles.filaLabel}>Teléfono</Text>
             <Text style={styles.filaValor}>{perfil.telefono}</Text>
           </View>
           <View style={styles.fila}>
-            <Text style={styles.filaLabel}>🎂 Nacimiento</Text>
+            <Text style={styles.filaLabel}>Nacimiento</Text>
             <Text style={styles.filaValor}>{perfil.fechaNacimiento}</Text>
           </View>
         </View>
@@ -112,7 +171,7 @@ export default function PerfilScreen({ navigation }) {
         {/* Botones */}
         <View style={styles.botonesContainer}>
           <TouchableOpacity style={styles.botonEditar} onPress={abrirModal}>
-            <Text style={styles.botonEditarText}>✏️ Editar perfil</Text>
+            <Text style={styles.botonEditarText}>Editar perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.botonCerrar}
@@ -135,19 +194,23 @@ export default function PerfilScreen({ navigation }) {
           <View style={styles.modalContainer}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-              <Text style={styles.modalTitulo}>✏️ Editar Perfil</Text>
+              <Text style={styles.modalTitulo}>Editar Perfil</Text>
               <Text style={styles.modalSubtitulo}>Modifica tus datos personales</Text>
 
+              {/* Nombre */}
               <Text style={styles.label}>Nombre completo *</Text>
               <TextInput
                 style={[styles.input, errores.nombre && styles.inputError]}
                 placeholder="Tu nombre completo"
                 placeholderTextColor="#aaa"
                 value={nombreTemp}
-                onChangeText={(t) => { setNombreTemp(t); setErrores(e => ({ ...e, nombre: null })); }}
+                onChangeText={(t) => { setNombreTemp(t); limpiarError('nombre'); }}
+                autoCapitalize="words"
+                maxLength={80}
               />
               {errores.nombre && <Text style={styles.errorText}>{errores.nombre}</Text>}
 
+              {/* Correo */}
               <Text style={styles.label}>Correo electrónico *</Text>
               <TextInput
                 style={[styles.input, errores.correo && styles.inputError]}
@@ -156,10 +219,11 @@ export default function PerfilScreen({ navigation }) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={correoTemp}
-                onChangeText={(t) => { setCorreoTemp(t); setErrores(e => ({ ...e, correo: null })); }}
+                onChangeText={(t) => { setCorreoTemp(t); limpiarError('correo'); }}
               />
               {errores.correo && <Text style={styles.errorText}>{errores.correo}</Text>}
 
+              {/* Teléfono */}
               <Text style={styles.label}>Teléfono *</Text>
               <TextInput
                 style={[styles.input, errores.telefono && styles.inputError]}
@@ -167,10 +231,11 @@ export default function PerfilScreen({ navigation }) {
                 placeholderTextColor="#aaa"
                 keyboardType="phone-pad"
                 value={telefonoTemp}
-                onChangeText={(t) => { setTelefonoTemp(t); setErrores(e => ({ ...e, telefono: null })); }}
+                onChangeText={(t) => { setTelefonoTemp(t); limpiarError('telefono'); }}
               />
               {errores.telefono && <Text style={styles.errorText}>{errores.telefono}</Text>}
 
+              {/* Fecha */}
               <Text style={styles.label}>Fecha de nacimiento *</Text>
               <TextInput
                 style={[styles.input, errores.fecha && styles.inputError]}
@@ -325,3 +390,4 @@ const styles = StyleSheet.create({
   },
   botonCancelarText: { color: '#e74c3c', fontWeight: '600', fontSize: 15 },
 });
+
