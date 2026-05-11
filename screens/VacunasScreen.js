@@ -135,7 +135,7 @@ const handleEliminar = (id) => {
           <View style={styles.modalContainer}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-              <Text style={styles.modalTitulo}>💉 Nueva Vacuna</Text>
+              <Text style={styles.modalTitulo}>Nueva Vacuna</Text>
               <Text style={styles.modalSubtitulo}>Llena los datos de tu vacuna</Text>
 
               <Text style={styles.label}>Nombre de la vacuna *</Text>
