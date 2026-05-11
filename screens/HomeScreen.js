@@ -9,7 +9,11 @@ const API_KEY = 'd24734cbe0f34cd58ddbb40a20cf7f22';
 
 export default function HomeScreen() {
   const [noticias, setNoticias] = useState([]);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = u
+  
+  
+  
+  seState(true);
   const [indiceActual, setIndiceActual] = useState(0);
   const flatListRef = useRef(null);
   const indiceRef = useRef(0);
