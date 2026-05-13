@@ -10,6 +10,7 @@ const API_KEY = 'd24734cbe0f34cd58ddbb40a20cf7f22';
 export default function HomeScreen() {
   const [noticias, setNoticias] = useState([]);
   const [cargando, setCargando] = useState(true);
+  
   const [indiceActual, setIndiceActual] = useState(0);
   const flatListRef = useRef(null);
   const indiceRef = useRef(0);
@@ -66,7 +67,6 @@ export default function HomeScreen() {
 
         {/* Header verde como Register */}
         <View style={styles.headerSection}>
-          <Text style={styles.tituloEmoji}>📰</Text>
           <Text style={styles.tituloSub}>LO MÁS RECIENTE</Text>
           <Text style={styles.titulo}>Noticias de Vacunas</Text>
         </View>
