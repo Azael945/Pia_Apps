@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState, useRef } from 'react';
+import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import * as Linking from 'expo-linking';
 
@@ -38,7 +39,36 @@ export default function HomeScreen() {
       const response = await axios.get(
         `https://newsapi.org/v2/everything?q=vacunas&language=es&pageSize=6&apiKey=${API_KEY}`
       );
-      setNoticias(response.data.articles);
+      const articulos = response.data.articles;
+      setNoticias(articulos);
+
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Alerta Sanitaria',
+        text2: 'Se detectó una posible alerta de brote en tu región.',
+        position: 'top',
+        visibilityTime: 6000,
+      });
+
+      // Detectar posible brote en los titulares
+      /*const palabrasClave = ['brote', 'alerta', 'emergencia', 'epidemia', 'pandemia', 'riesgo', 'peligro'];
+      const hayBrote = articulos.some(n =>
+        palabrasClave.some(palabra =>
+          n.title?.toLowerCase().includes(palabra) ||
+          n.description?.toLowerCase().includes(palabra)
+        )
+      );
+
+      if (hayBrote) {
+        Toast.show({
+          type: 'error',
+          text1: 'Alerta Sanitaria',
+          text2: 'Se detectó una posible alerta de brote en tu región.',
+          position: 'top',
+          visibilityTime: 6000,
+        });
+      }*/
+
     } catch (error) {
       console.error('Error al cargar noticias:', error);
     } finally {
