@@ -8,6 +8,8 @@ import HomeScreen from './screens/HomeScreen';
 import VacunasScreen from './screens/VacunasScreen';
 import PerfilScreen from './screens/PerfilScreen';
 import Toast from 'react-native-toast-message';
+import CartillaDetalleScreen from './screens/CartillaDetalleScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -54,6 +56,7 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="CartillaDetalle" component={CartillaDetalleScreen} />
         </Stack.Navigator>
       </NavigationContainer>
       <Toast />
