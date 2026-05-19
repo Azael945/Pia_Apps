@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 export default function LoginScreen({ navigation }) {
   const [fontsLoaded] = useFonts({ DancingScript_700Bold });
@@ -34,6 +35,32 @@ export default function LoginScreen({ navigation }) {
 
     setErrores({});
     navigation.navigate('MainTabs');
+  };
+
+  const handleHuella = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    if (!compatible) {
+      Alert.alert('Error', 'Tu dispositivo no soporta autenticación biométrica.');
+      return;
+    }
+
+    const registrado = await LocalAuthentication.isEnrolledAsync();
+    if (!registrado) {
+      Alert.alert('Error', 'No tienes huellas registradas en tu dispositivo.');
+      return;
+    }
+
+    const resultado = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Usa tu huella para iniciar sesión',
+      cancelLabel: 'Cancelar',
+      fallbackLabel: 'Usar contraseña',
+    });
+
+    if (resultado.success) {
+      navigation.navigate('MainTabs');
+    } else {
+      Alert.alert('Error', 'No se pudo verificar tu huella. Intenta de nuevo.');
+    }
   };
 
   return (
@@ -79,6 +106,10 @@ export default function LoginScreen({ navigation }) {
 
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>INICIAR SESIÓN</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.botonHuella} onPress={handleHuella}>
+              <Text style={styles.botonHuellaText}>Ingresar con huella dactilar</Text>
             </TouchableOpacity>
 
             <View style={styles.registerRow}>
@@ -151,4 +182,19 @@ const styles = StyleSheet.create({
   registerRow: { flexDirection: 'row', justifyContent: 'center' },
   registerText: { color: '#888', fontSize: 14 },
   registerLink: { color: '#2E6B3E', fontWeight: 'bold', fontSize: 14 },
+
+  botonHuella: {
+    borderWidth: 2,
+    borderColor: '#2E6B3E',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  
+  botonHuellaText: {
+    color: '#2E6B3E',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
 });
