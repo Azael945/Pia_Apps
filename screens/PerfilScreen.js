@@ -134,7 +134,7 @@ export default function PerfilScreen({ navigation }) {
         {/* Header */}
         <View style={styles.headerSection}>
           <Text style={styles.tituloSub}>TU CUENTA</Text>
-          <Text style={styles.titulo}>Mi Perfil 👨🏻‍💻</Text>
+          <Text style={styles.titulo}>Mi Perfil</Text>
         </View>
 
         {/* Avatar */}

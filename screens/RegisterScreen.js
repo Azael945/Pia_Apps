@@ -1,96 +1,12 @@
-
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, BackHandler } from 'react-native';
 import { useState, useEffect } from 'react';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
 import Toast from 'react-native-toast-message';
 import { obtenerErrores } from '../utils/validaciones';
 
-const soloLetras = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'-]+$/;
-const soloTelefono = /^[0-9]{7,15}$/;
-
-function validarFechaNacimiento(valor) {
-  if (!valor.trim()) return 'La fecha de nacimiento es obligatoria.';
-
-  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-  const match = valor.match(regex);
-  if (!match) return 'La fecha debe tener el formato DD/MM/AAAA.';
-
-  const dia = parseInt(match[1], 10);
-  const mes = parseInt(match[2], 10);
-  const anio = parseInt(match[3], 10);
-
-  const anioActual = new Date().getFullYear();
-
-  if (anio < 1900 || anio > anioActual)
-    return `El año debe estar entre 1900 y ${anioActual}.`;
-  if (mes < 1 || mes > 12)
-    return 'El mes debe estar entre 01 y 12.';
-
-  const diasEnMes = new Date(anio, mes, 0).getDate();
-  if (dia < 1 || dia > diasEnMes)
-    return `El día debe estar entre 01 y ${diasEnMes} para ese mes.`;
-
-  const fechaIngresada = new Date(anio, mes - 1, dia);
-  if (fechaIngresada > new Date())
-    return 'La fecha de nacimiento no puede ser futura.';
-
-  return null;
-}
-
-function validarCamposLocales({ nombres, apellidos, fechaNacimiento, telefono }) {
-  const errores = [];
-
-  if (!nombres.trim())
-    errores.push('El nombre es obligatorio.');
-  else if (!soloLetras.test(nombres))
-    errores.push('El nombre solo puede contener letras.');
-  else if (nombres.trim().length < 2)
-    errores.push('El nombre debe tener al menos 2 caracteres.');
-
-  if (!apellidos.trim())
-    errores.push('El apellido es obligatorio.');
-  else if (!soloLetras.test(apellidos))
-    errores.push('El apellido solo puede contener letras.');
-  else if (apellidos.trim().length < 2)
-    errores.push('El apellido debe tener al menos 2 caracteres.');
-
-  const errorFecha = validarFechaNacimiento(fechaNacimiento);
-  if (errorFecha) errores.push(errorFecha);
-
-  const telefonoLimpio = telefono.replace(/\s/g, '');
-  if (!telefonoLimpio)
-    errores.push('El teléfono es obligatorio.');
-  else if (!soloTelefono.test(telefonoLimpio))
-    errores.push('El teléfono debe tener entre 7 y 15 dígitos numéricos.');
-
-  return errores;
-}
-
-function formatearFecha(texto, valorAnterior) {
-  let soloDigitos = texto.replace(/\D/g, '');
-
-  if (soloDigitos.length > 8) soloDigitos = soloDigitos.slice(0, 8);
-
-  let resultado = soloDigitos;
-  if (soloDigitos.length >= 3) {
-    resultado = soloDigitos.slice(0, 2) + '/' + soloDigitos.slice(2);
-  }
-  if (soloDigitos.length >= 5) {
-    resultado = soloDigitos.slice(0, 2) + '/' + soloDigitos.slice(2, 4) + '/' + soloDigitos.slice(4);
-  }
-
-  return resultado;
-}
-
 export default function RegisterScreen({ navigation }) {
-  const [fontsLoaded] = useFonts({ DancingScript_700Bold });
   const [cargando, setCargando] = useState(false);
 
-  const [nombres, setNombres] = useState('');
-  const [apellidos, setApellidos] = useState('');
-  const [fechaNacimiento, setFechaNacimiento] = useState('');
-  const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
@@ -101,36 +17,21 @@ export default function RegisterScreen({ navigation }) {
     return () => backHandler.remove();
   }, [cargando]);
 
-  const handleFechaNacimientoChange = (texto) => {
-    const formateado = formatearFecha(texto, fechaNacimiento);
-    setFechaNacimiento(formateado);
-  };
-
-  const mostrarError = (mensaje) => {
-    Toast.show({
-      type: 'error',
-      text1: 'Error de validación',
-      text2: mensaje,
-      position: 'top',
-      visibilityTime: 3000,
-    });
-  };
-
   const handleCrearCuenta = () => {
-    const erroresLocales = validarCamposLocales({ nombres, apellidos, fechaNacimiento, telefono });
-    if (erroresLocales.length > 0) {
-      mostrarError(erroresLocales[0]);
-      return;
-    }
-
-    const erroresUtils = obtenerErrores(correo, contrasena);
-    if (erroresUtils.length > 0) {
-      mostrarError(erroresUtils[0]);
-      return;
-    }
+    const errores = obtenerErrores(correo, contrasena);
 
     if (confirmarContrasena !== contrasena) {
-      mostrarError('Las contraseñas no coinciden.');
+      errores.push('Las contraseñas no coinciden.');
+    }
+
+    if (errores.length > 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error de validación',
+        text2: errores[0],
+        position: 'top',
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -148,107 +49,107 @@ export default function RegisterScreen({ navigation }) {
     }, 2000);
   };
 
-  if (!fontsLoaded) return null;
-
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
           <ScrollView showsVerticalScrollIndicator={false}>
 
-            <View style={styles.headerSection}>
-              <Text style={styles.appTitle}>Cartilla Virtual</Text>
-              <Text style={styles.appSubtitle}>Crea tu cuenta para comenzar</Text>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerSub}>Crea tu cuenta</Text>
+              <Text style={styles.headerTitle}>Cartilla Virtual</Text>
             </View>
 
-            <View style={styles.formSection}>
-              <Text style={styles.welcomeText}>¡Regístrate!</Text>
-              <Text style={styles.subText}>Llena los datos para continuar</Text>
+            {/* Formulario */}
+            <View style={styles.form}>
+              <Text style={styles.formTitle}>Regístrate</Text>
+              <Text style={styles.formSub}>Llena los datos para continuar</Text>
 
-              <Text style={styles.label}>Nombres</Text>
+              <Text style={styles.inputLabel}>NOMBRES</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Tus nombres"
-                placeholderTextColor="#aaa"
-                value={nombres}
-                onChangeText={setNombres}
-                autoCapitalize="words"
+                placeholderTextColor="#bbb"
               />
 
-              <Text style={styles.label}>Apellidos</Text>
+              <Text style={styles.inputLabel}>APELLIDOS</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Tus apellidos"
-                placeholderTextColor="#aaa"
-                value={apellidos}
-                onChangeText={setApellidos}
-                autoCapitalize="words"
+                placeholderTextColor="#bbb"
               />
 
-              <Text style={styles.label}>Fecha de nacimiento</Text>
+              <Text style={styles.inputLabel}>FECHA DE NACIMIENTO</Text>
               <TextInput
                 style={styles.input}
                 placeholder="DD/MM/AAAA"
-                placeholderTextColor="#aaa"
+                placeholderTextColor="#bbb"
                 keyboardType="numeric"
-                value={fechaNacimiento}
-                onChangeText={handleFechaNacimientoChange}
-                maxLength={10}
               />
 
-              <Text style={styles.label}>Teléfono</Text>
+              <Text style={styles.inputLabel}>TELÉFONO</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Tu número de teléfono"
-                placeholderTextColor="#aaa"
+                placeholderTextColor="#bbb"
                 keyboardType="phone-pad"
-                value={telefono}
-                onChangeText={setTelefono}
               />
 
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={styles.inputLabel}>CORREO ELECTRÓNICO</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Tu correo electrónico"
-                placeholderTextColor="#aaa"
+                placeholder="usuario@correo.com"
+                placeholderTextColor="#bbb"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={correo}
                 onChangeText={setCorreo}
               />
 
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={styles.inputLabel}>CONTRASEÑA</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Crea una contraseña"
-                placeholderTextColor="#aaa"
+                placeholderTextColor="#bbb"
                 secureTextEntry
                 value={contrasena}
                 onChangeText={setContrasena}
               />
 
-              <Text style={styles.label}>Confirmar contraseña</Text>
+              <Text style={styles.inputLabel}>CONFIRMAR CONTRASEÑA</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Repite tu contraseña"
-                placeholderTextColor="#aaa"
+                placeholderTextColor="#bbb"
                 secureTextEntry
                 value={confirmarContrasena}
                 onChangeText={setConfirmarContrasena}
               />
 
               <TouchableOpacity
-                style={styles.registerButton}
+                style={[styles.btnPrimary, cargando && styles.btnDisabled]}
                 onPress={handleCrearCuenta}
                 disabled={cargando}
               >
-                {cargando ? <ActivityIndicator color="white" /> : <Text style={styles.registerButtonText}>CREAR CUENTA</Text>}
+                {cargando
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.btnPrimaryText}>Crear cuenta</Text>
+                }
               </TouchableOpacity>
 
               <View style={styles.loginRow}>
                 <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={cargando}>
-                  <Text style={[styles.loginLink, cargando && { color: '#aaa' }]}>Inicia sesión</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Login')}
+                  disabled={cargando}
+                >
+                  <Text style={[styles.loginLink, cargando && { color: '#aaa' }]}>
+                    Inicia sesión
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -265,86 +166,95 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  headerSection: {
+
+  // Header
+  header: {
     backgroundColor: '#2E6B3E',
-    paddingTop: 25,
-    paddingBottom: 6,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-    alignItems: 'center',
+    paddingTop: 28,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 8,
   },
-  appTitle: {
-    fontSize: 42,
-    color: 'white',
-    fontFamily: 'DancingScript_700Bold',
-    textAlign: 'center',
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  formSection: {
-    paddingHorizontal: 30,
-    paddingTop: 24,
-    paddingBottom: 40,
-  },
-  welcomeText: {
-    fontSize: 28,
-    fontFamily: 'DancingScript_700Bold',
-    color: '#222',
+  headerSub: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.55)',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
     marginBottom: 4,
   },
-  subText: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 13,
-    color: '#555',
-    marginBottom: 5,
+  headerTitle: {
+    fontSize: 32,
     fontWeight: '600',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+
+  // Formulario
+  form: {
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 48,
+  },
+  formTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  formSub: {
+    fontSize: 13,
+    color: '#999',
+    marginBottom: 28,
+  },
+  inputLabel: {
+    fontSize: 10,
+    color: '#888',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    fontWeight: '500',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e8e8e8',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    marginBottom: 14,
-    color: '#333',
+    paddingVertical: 13,
+    fontSize: 14,
+    color: '#111',
+    backgroundColor: '#fafafa',
+    marginBottom: 16,
   },
-  registerButton: {
+  btnPrimary: {
     backgroundColor: '#2E6B3E',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 15,
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 20,
   },
-  registerButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1,
+  btnDisabled: {
+    opacity: 0.6,
+  },
+  btnPrimaryText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
   loginText: {
-    color: '#888',
-    fontSize: 14,
+    color: '#aaa',
+    fontSize: 13,
   },
   loginLink: {
     color: '#2E6B3E',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
   },
 });
-
-

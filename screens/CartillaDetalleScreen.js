@@ -109,7 +109,7 @@ export default function CartillaDetalleScreen({ route, navigation }) {
 
       <View style={styles.headerSection}>
         <Text style={styles.tituloSub}>CARTILLA DE</Text>
-        <Text style={styles.titulo}>{nombre} 💉</Text>
+        <Text style={styles.titulo}>{nombre}</Text>
       </View>
 
       <FlatList

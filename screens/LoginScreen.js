@@ -1,15 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 export default function LoginScreen({ navigation }) {
-  const [fontsLoaded] = useFonts({ DancingScript_700Bold });
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [errores, setErrores] = useState({});
-
-  if (!fontsLoaded) return null;
 
   const handleLogin = () => {
     const nuevosErrores = {};
@@ -18,7 +15,6 @@ export default function LoginScreen({ navigation }) {
     if (!regexCorreo.test(correo)) {
       nuevosErrores.correo = 'Ingresa un correo válido. Ej: usuario@mail.com';
     }
-
     if (contrasena.length < 8) {
       nuevosErrores.contrasena = 'La contraseña debe tener al menos 8 caracteres.';
     } else if (!/[A-Z]/.test(contrasena)) {
@@ -36,40 +32,76 @@ export default function LoginScreen({ navigation }) {
     navigation.navigate('MainTabs');
   };
 
+  const handleHuella = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    if (!compatible) {
+      Alert.alert('Error', 'Tu dispositivo no soporta autenticación biométrica.');
+      return;
+    }
+    const registrado = await LocalAuthentication.isEnrolledAsync();
+    if (!registrado) {
+      Alert.alert('Error', 'No tienes huellas registradas en tu dispositivo.');
+      return;
+    }
+    const resultado = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Usa tu huella para iniciar sesión',
+      cancelLabel: 'Cancelar',
+      fallbackLabel: 'Usar contraseña',
+    });
+    if (resultado.success) {
+      navigation.navigate('MainTabs');
+    } else {
+      Alert.alert('Error', 'No se pudo verificar tu huella. Intenta de nuevo.');
+    }
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-
-          <View style={styles.imageSection}>
-            <Image source={require('../assets/adulto-mayor.jpeg')} style={styles.bgImage} />
-            <View style={styles.overlay} />
-            <Text style={styles.appTitle}>Cartilla Virtual</Text>
-            <Text style={styles.appSubtitle}>Lleva el control de tus vacunas fácilmente.</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Image
+              source={require('../assets/adulto-mayor.jpeg')}
+              style={styles.headerImage}
+            />
+            <View style={styles.headerOverlay} />
+            <View style={styles.headerContent}>
+              <Text style={styles.headerSub}>Bienvenido</Text>
+              <Text style={styles.headerTitle}>Cartilla Virtual</Text>
+            </View>
           </View>
 
-          <View style={styles.formSection}>
-            <Text style={styles.welcomeText}>¡Bienvenido!</Text>
-            <Text style={styles.subText}>Inicia sesión para continuar</Text>
+          {/* Formulario */}
+          <View style={styles.form}>
+            <Text style={styles.formTitle}>Inicia sesión</Text>
+            <Text style={styles.formSub}>Ingresa tus datos para continuar</Text>
 
+            {/* Correo */}
+            <Text style={styles.inputLabel}>CORREO</Text>
             <TextInput
               style={[styles.input, errores.correo && styles.inputError]}
-              placeholder="Correo electrónico"
-              placeholderTextColor="#aaa"
+              placeholder="usuario@correo.com"
+              placeholderTextColor="#bbb"
               keyboardType="email-address"
               autoCapitalize="none"
               value={correo}
-              onChangeText={(text) => { setCorreo(text); setErrores(e => ({ ...e, correo: null })); }}
+              onChangeText={t => { setCorreo(t); setErrores(e => ({ ...e, correo: null })); }}
             />
             {errores.correo && <Text style={styles.errorText}>{errores.correo}</Text>}
 
+            {/* Contraseña */}
+            <Text style={styles.inputLabel}>CONTRASEÑA</Text>
             <TextInput
               style={[styles.input, errores.contrasena && styles.inputError]}
-              placeholder="Contraseña"
-              placeholderTextColor="#aaa"
+              placeholder="••••••••"
+              placeholderTextColor="#bbb"
               secureTextEntry
               value={contrasena}
-              onChangeText={(text) => { setContrasena(text); setErrores(e => ({ ...e, contrasena: null })); }}
+              onChangeText={t => { setContrasena(t); setErrores(e => ({ ...e, contrasena: null })); }}
             />
             {errores.contrasena && <Text style={styles.errorText}>{errores.contrasena}</Text>}
 
@@ -77,12 +109,16 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>INICIAR SESIÓN</Text>
+            <TouchableOpacity style={styles.btnPrimary} onPress={handleLogin}>
+              <Text style={styles.btnPrimaryText}>Iniciar sesión</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnOutline} onPress={handleHuella}>
+              <Text style={styles.btnOutlineText}>Huella dactilar</Text>
             </TouchableOpacity>
 
             <View style={styles.registerRow}>
-              <Text style={styles.registerText}>¿No tienes cuenta? </Text>
+              <Text style={styles.registerText}>Sin cuenta? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                 <Text style={styles.registerLink}>Regístrate</Text>
               </TouchableOpacity>
@@ -96,59 +132,133 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  imageSection: {
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+
+  // Header
+  header: {
     flex: 2,
     justifyContent: 'flex-end',
-    alignItems: 'center',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-    overflow: 'hidden',
   },
-  bgImage: {
+  headerImage: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  overlay: {
+  headerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  appTitle: { fontSize: 42, color: 'white', fontFamily: 'DancingScript_700Bold', textAlign: 'center' },
-  appSubtitle: { fontSize: 14, color: 'white', textAlign: 'center', marginTop: 8, paddingHorizontal: 30 },
-  formSection: { flex: 3, paddingHorizontal: 30, paddingTop: 30 },
-  welcomeText: { fontSize: 28, fontFamily: 'DancingScript_700Bold', color: '#222', marginBottom: 4 },
-  subText: { fontSize: 14, color: '#888', marginBottom: 24 },
+  headerContent: {
+    padding: 24,
+    paddingBottom: 28,
+  },
+  headerSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '600',
+    letterSpacing: -0.5,
+  },
+
+  // Formulario
+  form: {
+    flex: 3,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+  },
+  formTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  formSub: {
+    fontSize: 13,
+    color: '#999',
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 10,
+    color: '#888',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e8e8e8',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: '#111',
+    backgroundColor: '#fafafa',
     marginBottom: 4,
-    color: '#333',
   },
   inputError: {
-    borderColor: '#e74c3c',
+    borderColor: '#e53935',
   },
   errorText: {
-    color: '#e74c3c',
-    fontSize: 12,
-    marginBottom: 10,
-    marginLeft: 4,
+    color: '#e53935',
+    fontSize: 11,
+    marginBottom: 12,
+    marginLeft: 2,
   },
-  forgotText: { textAlign: 'right', color: '#888', fontSize: 13, marginBottom: 24, marginTop: 4 },
-  loginButton: {
+  forgotText: {
+    textAlign: 'right',
+    color: '#999',
+    fontSize: 12,
+    marginBottom: 20,
+    marginTop: 6,
+  },
+  btnPrimary: {
     backgroundColor: '#2E6B3E',
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  btnPrimaryText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  btnOutline: {
+    borderWidth: 1.5,
+    borderColor: '#2E6B3E',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  loginButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 },
-  registerRow: { flexDirection: 'row', justifyContent: 'center' },
-  registerText: { color: '#888', fontSize: 14 },
-  registerLink: { color: '#2E6B3E', fontWeight: 'bold', fontSize: 14 },
+  btnOutlineText: {
+    color: '#2E6B3E',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  registerText: {
+    color: '#aaa',
+    fontSize: 13,
+  },
+  registerLink: {
+    color: '#2E6B3E',
+    fontWeight: '600',
+    fontSize: 13,
+  },
 });

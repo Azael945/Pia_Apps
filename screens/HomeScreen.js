@@ -68,7 +68,7 @@ export default function HomeScreen() {
         {/* Header verde como Register */}
         <View style={styles.headerSection}>
           <Text style={styles.tituloSub}>LO MÁS RECIENTE</Text>
-          <Text style={styles.titulo}>Noticias de Vacunas 📰</Text>
+          <Text style={styles.titulo}>Noticias de Vacunas</Text>
         </View>
 
         {/* Carrusel */}

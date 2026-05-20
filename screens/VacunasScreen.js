@@ -55,7 +55,7 @@ export default function VacunasScreen({ navigation }) {
 
       <View style={styles.headerSection}>
         <Text style={styles.tituloSub}>GESTIÓN FAMILIAR</Text>
-        <Text style={styles.titulo}>Mis Cartillas 💉</Text>
+        <Text style={styles.titulo}>Mis Cartillas</Text>
       </View>
 
       <FlatList
